@@ -22,18 +22,20 @@ jobs:
         run: npm install -g @angular/cli
 
       - name: Install dependencies
+        working-directory: ./my-angular-app
         run: npm install
 
       - name: Build Angular application
+        working-directory: ./my-angular-app
         run: ng build --configuration=production
 
       - name: Archive build files
         run: |
           TIMESTAMP=$(date +'%Y%m%d%H%M%S')
           ZIP_NAME="my-angular-app-$TIMESTAMP.zip"
-          cd dist/my-angular-app
+          cd ./my-angular-app/dist/my-angular-app
           zip -r $ZIP_NAME .
-          mv $ZIP_NAME ../../
+          mv $ZIP_NAME ../../..
         shell: bash
 
       - name: Upload build artifact
