@@ -1,9 +1,9 @@
-name: Deploy to AWS Elastic Beanstalk
+name: Deploy Angular App to AWS Elastic Beanstalk
 
 on:
   push:
     branches:
-      - main  # adjust to your main branch name
+      - main
 
 jobs:
   deploy:
@@ -16,51 +16,40 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18'  # adjust to your Node.js version
+          node-version: '20'
 
-      - name: Install AWS CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3 python3-venv
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install awscli
-      - name: Install Angular CLI and dependencies
-        working-directory: ./my-angular-app/
-        run: |
-          npm install -g @angular/cli
-          npm install
-      - name: Build Angular app
-        working-directory: ./my-angular-app/
-        run: npm run build
-        
-      - name: Generate timestamp
-        id: timestamp
-        run: echo "::set-output name=date::$(date +'%Y%m%d%H%M%S')"
+      - name: Install Angular CLI
+        run: npm install -g @angular/cli
 
-      - name: Create deployment folder and package app
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Angular application
+        run: ng build --configuration=production
+
+      - name: Archive build files
         run: |
-          mkdir deployment
-          zip -r deployment/my-angular-app-${{ steps.timestamp.outputs.date }}.zip .
-          
-      - name: Upload artifact
+          TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+          ZIP_NAME="my-angular-app-$TIMESTAMP.zip"
+          cd ./dist/my-angular-app
+          zip -r $ZIP_NAME .
+          mv $ZIP_NAME ../../
+        shell: bash
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: my-angular-app
-          path: deployment/my-angular-app-${{ steps.timestamp.outputs.date }}.zip
-          if-no-files-found: warn
+          name: build-artifact
+          path: ./my-angular-app-$TIMESTAMP.zip
+
+      - name: Configure AWS credentials
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ${{ secrets.AWS_REGION }}
 
       - name: Deploy to Elastic Beanstalk
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'  # replace with your AWS region, e.g., 'us-west-2'
         run: |
-          aws s3 cp deployment/my-angular-app-${{ steps.timestamp.outputs.date }}.zip s3://my-angular-app-buckets/  # replace with your S3 bucket name
-          aws elasticbeanstalk create-application-version --application-name my-angular-app --version-label $GITHUB_SHA --source-bundle S3Bucket="my-angular-app-buckets",S3Key="my-angular-app-${{ steps.timestamp.outputs.date }}.zip "
-          aws elasticbeanstalk update-environment --application-name my-angular-app --environment-name my-angular-app-env --version-label $GITHUB_SHA
-      
-      - name: Clean up
-        run: |
-          rm -rf node_modules my-angular-app-${{ steps.timestamp.outputs.date }}.zip
+          aws s3 cp ./my-angular-app-$TIMESTAMP.zip s3://my-angular-app-bucket/my-angular-app-$TIMESTAMP.zip
+          aws elasticbeanstalk create-application-version --application-name my-angular-app --version-label ${{ github.sha }} --source-bundle S3Bucket=my-angular-app-bucket,S3Key=my-angular-app-$TIMESTAMP.zip
+          aws elasticbeanstalk update-environment --environment-name my-angular-app-env --version-label ${{ github.sha }}
