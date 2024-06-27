@@ -52,6 +52,7 @@ jobs:
 
       - name: Deploy to Elastic Beanstalk
         run: |
+          # Adjust the path here if needed, ensure it matches the artifact naming and location
           aws s3 cp ./my-angular-app/dist/my-angular-app/my-angular-app-*.zip s3://my-angular-app-bucket/
           aws elasticbeanstalk create-application-version --application-name my-angular-app --version-label ${{ github.sha }} --source-bundle S3Bucket=my-angular-app-bucket,S3Key=my-angular-app-$TIMESTAMP.zip
           aws elasticbeanstalk update-environment --environment-name my-angular-app-env --version-label ${{ github.sha }}
