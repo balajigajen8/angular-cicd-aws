@@ -42,13 +42,16 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-artifact
-          path: ./my-angular-app/dist/my-angular-app/$ZIP_NAME
+          path: ./my-angular-app/dist/my-angular-app/my-angular-app-*.zip
 
       - name: Configure AWS credentials
-        run: aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} && aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} && aws configure set default.region ${{ secrets.AWS_REGION }}
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ${{ secrets.AWS_REGION }}
 
       - name: Deploy to Elastic Beanstalk
         run: |
-          aws s3 cp ./my-angular-app/$ZIP_NAME s3://my-angular-app-bucket/$ZIP_NAME
-          aws elasticbeanstalk create-application-version --application-name my-angular-app --version-label ${{ github.sha }} --source-bundle S3Bucket=my-angular-app-bucket,S3Key=$ZIP_NAME
+          aws s3 cp ./my-angular-app/dist/my-angular-app/my-angular-app-*.zip s3://my-angular-app-bucket/
+          aws elasticbeanstalk create-application-version --application-name my-angular-app --version-label ${{ github.sha }} --source-bundle S3Bucket=my-angular-app-bucket,S3Key=my-angular-app-$TIMESTAMP.zip
           aws elasticbeanstalk update-environment --environment-name my-angular-app-env --version-label ${{ github.sha }}
