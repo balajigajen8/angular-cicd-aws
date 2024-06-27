@@ -22,9 +22,11 @@ jobs:
         run: npm install -g @angular/cli
 
       - name: Install dependencies
+        working-directory: ./my-angular-app
         run: npm install
 
       - name: Build Angular application
+        working-directory: ./my-angular-app
         run: ng build --configuration=production
 
       - name: Archive build files
@@ -40,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-artifact
-          path: ./my-angular-app-$TIMESTAMP.zip
+          path: ./my-angular-app/dist/my-angular-app/my-angular-app-$TIMESTAMP.zip
 
       - name: Configure AWS credentials
         run: |
@@ -50,6 +52,6 @@ jobs:
 
       - name: Deploy to Elastic Beanstalk
         run: |
-          aws s3 cp ./my-angular-app-$TIMESTAMP.zip s3://my-angular-app-bucket/my-angular-app-$TIMESTAMP.zip
+          aws s3 cp ./my-angular-app/dist/my-angular-app/my-angular-app-$TIMESTAMP.zip s3://my-angular-app-bucket/my-angular-app-$TIMESTAMP.zip
           aws elasticbeanstalk create-application-version --application-name my-angular-app --version-label ${{ github.sha }} --source-bundle S3Bucket=my-angular-app-bucket,S3Key=my-angular-app-$TIMESTAMP.zip
           aws elasticbeanstalk update-environment --environment-name my-angular-app-env --version-label ${{ github.sha }}
