@@ -19,9 +19,11 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
+        working-directory: ./my-angular-app/
         run: npm install
 
       - name: Build Angular application
+        working-directory: ./my-angular-app/
         run: npm run build -- --configuration production
 
       - name: Archive build files
